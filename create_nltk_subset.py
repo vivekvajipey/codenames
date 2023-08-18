@@ -18,7 +18,7 @@ def select_subset(subset_size):
 
     return selected_words
 
-if __name__ == "__main__":
+if __name__ == "__main__" :
     # nltk.download('averaged_perceptron_tagger')
     try:
         brown.ensure_loaded()
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     except:
         nltk.download("wordnet")
     
-    subset = select_subset(1000)
+    subset = select_subset(100)
 
     with open('corpora/corpus_subset.txt', 'w') as file:
         for word in subset:
