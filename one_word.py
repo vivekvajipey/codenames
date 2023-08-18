@@ -1,10 +1,9 @@
 from playgroundrl.client import *
 from playgroundrl.actions import *
-from util import parse_arguments
-from gensim.models import Word2Vec
 from gensim.models.keyedvectors import KeyedVectors
 from nltk.corpus import wordnet as word_corpus_loader
 import nltk
+from util import parse_arguments
 
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -56,10 +55,18 @@ class TestCodenames(PlaygroundClient):
         best_guess_index = 0
         best_similarity = -float('inf')
 
-        clue_vector = model[clue_word].reshape(1, -1)
+        clue_vector = self.get_word_vector(clue_word, model).reshape(1, -1)
         for i in range(BOARD_SIZE):
+            # Skip if the word has already been guessed
+            if state.guessed[i] != "UNKNOWN":
+                continue
+            
             word = state.words[i]
-            word_vector = model[word].reshape(1, -1)
+            word_vector = self.get_word_vector(word, model)
+            if word_vector is None:  # Skip if word_vector is None
+                continue
+
+            word_vector = word_vector.reshape(1, -1)
             similarity = cosine_similarity(clue_vector, word_vector)
 
             if similarity > best_similarity:
@@ -73,6 +80,14 @@ class TestCodenames(PlaygroundClient):
             if (state.guessed[i] == "UNKNOWN") and (state.actual[i] == state.color):
                 return state.words[i]
         return 'clue'
+
+    def get_word_vector(self, word, model):
+        words = word.split()
+        vectors = [model[w] for w in words if w in model]
+        if vectors:
+            return np.mean(vectors, axis=0)
+        else:
+            return None
 
     def callback(self, state: CodenamesState, reward):
         if state.player_moving_id not in self.player_ids:
@@ -89,7 +104,7 @@ class TestCodenames(PlaygroundClient):
             clue_word = state.clue
             print(f'Guessing on {clue_word}')
             guess_index = self.find_best_single_guess(state, clue_word, glove_vectors)
-            print(state.words[guess_index])
+            print('I think it is ', state.words[guess_index])
             return CodenamesGuesserAction(guesses=[guess_index])
 
 
@@ -101,12 +116,15 @@ if __name__ == "__main__":
     # args = parse_arguments("codenames")
     args = parse_arguments()
     t = TestCodenames(args.authfile, args.render)
-    t.run(
-        # pool=Pool(args.pool),
-        pool=Pool.MODEL_ONLY,
-        num_games=args.num_games,
-        self_training=args.self_training,
-        maximum_messages=500000,
-        # used to set up 2-player game (rather than default 4)
-        game_parameters={"num_players": 2},
-    )
+    
+    for _ in range(args.num_games):
+        t.run(
+            # pool=Pool(args.pool),
+            pool=Pool.MODEL_ONLY,
+            # num_games=args.num_games,
+            num_games=1,
+            self_training=args.self_training,
+            maximum_messages=500000,
+            # used to set up 2-player game (rather than default 4)
+            game_parameters={"num_players": 2},
+        )
