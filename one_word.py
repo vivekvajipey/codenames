@@ -31,7 +31,7 @@ class TestCodenames(PlaygroundClient):
     def __init__(self, auth_file: str, render_gameplay: bool = False) -> None:
         super().__init__(
             GameType.CODENAMES,
-            model_name='vector-one-word-2',
+            model_name='vector-one-word-3',
             auth_file=auth_file,
             render_gameplay=render_gameplay,
         )
